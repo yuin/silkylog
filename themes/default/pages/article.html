@@ -1,0 +1,49 @@
+{{/* layout: layout */}}
+
+{{ $app := .App }}
+
+<article itemscope itemtype="http://schema.org/Article">
+<header>
+<h1 itemprop="name">{{ .Article.Title }}</h1>
+<div class="meta">
+<time datetime="{{ .Article.PostedAt.Format "2006-01-02T15:04:05Z07:00" }}">{{ .Article.PostedAt.Format "Jan _2, 2006" }}</time>
+{{ if ne (len .Article.Tags) 0 }}
+  {{ range $index, $tag := .Article.Tags }}
+  <span class="tag"><a href="{{ $app.Url "Tag" (H "Tag" $tag "Page" 0)}}" rel="tag" itemprop="keywords">{{ $tag }}</a></span>
+  {{ end }}
+{{ end}}
+</div>
+</header>
+  <div itemprop="articleBody">
+    {{ .Article.BodyHtml | raw }}
+
+    <div class="seealso">
+      {{ .Lua "seealso" .Article .App.Tags }}
+    </div>
+  </div>
+  <footer>
+    <dl>
+      <dt><i class="icon-bookmark-empty"></i><a href="{{ .Article.PermlinkPath }}" itemprop="url">Permalink</a></dt>
+      <dd> </dd>
+    </dl>
+  </footer>
+</article>
+
+{{ if gt (len .App.Config.Params.DisqusShortName) 0 }}
+<div id="disqus_thread"></div>
+<script type="text/javascript">
+  var disqus_shortname = '{{ .App.Config.Params.DisqusShortName }}';
+  var disqus_identifier = '{{ substr .Article.PermlinkPath 1 -1 }}';
+  var disqus_developer = 0;
+  if(islocal) {
+    disqus_developer = 1;
+  }
+  (function() {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+  })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+{{ end }}

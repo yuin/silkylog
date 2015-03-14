@@ -1,0 +1,31 @@
+{{ $app := .App }}
+<div class="menu-group">
+<aside>
+  <header><h3>About this site</h3></header>
+  {{ .Lua "about_this_site" }}
+</aside>
+<aside>
+  <header><h3>Find me on</h3></header>
+  {{ .Lua "find_me_on" }}
+</aside>
+</div>
+<div class="menu-group">
+<aside>
+  <header><h3>Archives</h3></header>
+  <dl>
+  {{ range $index, $year := (.App.Years.SortedMapKeys true) }}
+    {{ $articles := (index $app.Years $year) }}
+    {{ $iyear := toint $year }}
+    <li><a href="{{ $app.Url "Annual" (H "Year" $iyear "Page" 0)}}">{{ $year }} ({{len $articles}})</a></li>
+  {{ end }}
+  </dl>
+</aside>
+<aside>
+  <header><h3>Recently articles</h3></header>
+  <dl>
+  {{ range $index, $article := .App.Articles.SubList 0 5 }}
+    <li><a href="{{ $article.PermlinkPath }}">{{ $article.Title }}</a></li>
+  {{ end }}
+  </dl>
+</aside>
+</div>

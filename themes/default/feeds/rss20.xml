@@ -1,0 +1,27 @@
+{{ `<?xml version="1.0" encoding="UTF-8"?>` | raw }}
+<rss version="2.0">
+  <channel>
+    <title>{{ .App.Config.Params.SiteName }}</title>
+    <link>{{ .App.Config.SiteUrl }}</link>
+    <description>{{ .App.Config.Params.SiteDescription }}</description>
+    <copyright>{{ .App.Config.Params.Author }}</copyright>
+    {{ if gt (len .App.Articles) 0 }}
+    {{ $latest := (index .App.Articles 0) }}
+    <lastBuildDate>{{ $latest.UpdatedAt.UTC.Format "02 Jan 06 15:04 MST" }}</lastBuildDate>
+    {{ end }}
+    <generator>silkylog</generator>
+    {{ $app := .App }}
+    {{ range $index, $article := (.App.Articles.SubList 0 5) }}
+    <item>
+      <title>{{ $article.Title }} </title>
+      <link>{{ $article.PermlinkUrl }}</link>
+      <description>{{ $article.BodyHtml }}</description>
+      {{ range $index2, $tag := $article.Tags }}
+      <category>{{ $tag }}</category>
+      {{ end }}
+      <guid isPermaLink="true">{{ $article.PermlinkUrl }}</guid>
+      <pubDate>{{ $article.PostedAt.UTC.Format "02 Jan 06 15:04 MST" }}</pubDate>
+    </item>
+    {{ end }}
+  </channel>
+</rss>

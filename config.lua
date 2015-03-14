@@ -1,0 +1,107 @@
+silkylog = require("silkylog")
+
+config {
+  debug               = false,
+  site_url            = "http://example.com/",
+  editor              = {"vim"},
+  numthreads          = 8,
+  timezone            = "Asia/Tokyo",
+  theme               = "default",
+  pagination1         = 3,
+  pagination2         = 50,
+  trim_html           = true,
+
+  params = {
+    author              = "Your name",
+    site_name           = "Your site",
+    site_description    = "Your site description",
+    google_analytics_id = "",
+    disqus_short_name   = "",
+  },
+
+  top_url_path        = "",
+  article_url_path    = [[articles/{{ .PostedAt.Year | printf "%04d" }}/{{ .PostedAt.Month | printf "%02d" }}/{{ .PostedAt.Day | printf "%02d" }}/{{ .Slug }}.html]],
+  article_title       = [[{{ .App.Config.Params.SiteName }} :: {{ .Article.Title }}]],
+
+  index_url_path      = [[{{if (eq .Page 0)}}index.html{{else}}page/{{ .Page }}/index.html{{end}}]],
+  index_title         = [[{{.App.Config.Params.SiteName}}]],
+
+  tag_url_path        = [[articles/tag/{{ .Tag }}/{{if (ne .Page 0)}}page/{{ .Page }}/{{end}}index.html]],
+  tag_title           = [[{{.App.Config.Params.SiteName}} :: tag :: {{.Tag}}]],
+
+  annual_url_path     = [[articles/{{ .Year | printf "%04d" }}/{{if (ne .Page 0)}}page/{{ .Page }}/{{end}}index.html]],
+  annual_title        = [[{{.App.Config.Params.SiteName}} :: annual archive :: {{.Year}}]],
+
+  monthly_url_path    = [[articles/{{ .Year | printf "%04d" }}/{{ .Month | printf "%02d" }}/{{if (ne .Page 0)}}page/{{ .Page }}/{{end}}index.html]],
+  monthly_title       = [[{{.App.Config.Params.SiteName}} :: monthly archive :: {{.Year}}.{{.Month}}]],
+
+  include_url_path    = [[include/{{ .Name }}]],
+  feed_url_path       = [[{{ .Name }}]],
+  file_url_path       = [[{{ .Path }}]],
+
+  content_dir         = "src",
+  output_dir          = "public_html",
+  theme_dir           = "themes",
+  extra_files         = {
+    {src = "favicon.ico", dst = "", template = false},
+    {src = "404.html", dst = "", template = false},
+    {src = "CNAME", dst = "", template = false},
+    {src = "profile.html", dst = "", template = true}
+  },
+  clean = {
+    "articles",
+    "page",
+  },
+
+  markup_processors = {
+    [".md"]  = {
+      name = "blackfriday",
+      htmlopts = {
+        "HTML_USE_XHTML",
+        "HTML_USE_SMARTYPANTS",
+        "HTML_SMARTYPANTS_FRACTIONS",
+        "HTML_SMARTYPANTS_LATEX_DASHES"
+      },
+      exts = {
+        "EXTENSION_NO_INTRA_EMPHASIS",
+        "EXTENSION_TABLES",
+        "EXTENSION_FENCED_CODE",
+        "EXTENSION_AUTOLINK",
+        "EXTENSION_STRIKETHROUGH",
+        "EXTENSION_SPACE_HEADERS",
+        "EXTENSION_HEADER_IDS"
+      }
+    },
+    [".rst"] = function(text) 
+      local html = assert(silkylog.runprocessor([[python]],[[rst2html.py]], text))
+      return html
+    end
+  }
+}
+
+function seealso(art, tags)
+  local buf = {"<ul><h3>See Also</h3>"}
+  local seen = {}
+  seen[art.permlink_path] = 1
+  local i = 0
+  for j, tag in ipairs(art.tags) do
+    for k, article in ipairs(tags[tag]) do
+      if seen[article.permlink_path] == nil then
+        table.insert(buf, string.format("<li><a href=\"%s\">%s</a></li>", article.permlink_path, silkylog.htmlescape(article.title)))
+        seen[article.permlink_path] = 1
+        i = i + 1
+        if i > 4 then
+          break
+        end
+      end
+    end
+    if i > 4 then
+      break
+    end
+  end
+  table.insert(buf, "</ul>")
+  if i == 0 then
+    return ""
+  end
+  return table.concat(buf, "\n")
+end

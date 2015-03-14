@@ -1,0 +1,11 @@
+{{/* layout: layout */}}
+
+{{ $app := .App }}
+
+<ol class="archive-titles">
+  {{ range $index, $article := .Articles }}
+  <li><a href="{{ $article.PermlinkPath }}">{{ $article.Title }}</a> {{ $article.PostedAt.Format "Jan _2, 2006" }}</li>
+  {{ end }}
+</ol>
+
+{{ paginate . "page" }}

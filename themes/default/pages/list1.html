@@ -1,0 +1,31 @@
+{{/* layout: layout */}}
+
+{{ $app := .App }}
+{{ $numa := (sub (len .Articles) 1) }}
+{{range $index, $article := .Articles}}
+
+<article itemscope itemtype="http://schema.org/Article">
+<header>
+<h1 itemprop="name"><a href="{{ $article.PermlinkPath }}" itemprop="url">{{ $article.Title }}</a></h1>
+<div class="meta">
+<time datetime="{{ $article.PostedAt.Format "2006-01-02T15:04:05Z07:00" }}">{{ $article.PostedAt.Format "Jan _2, 2006" }}</time>
+{{ if ne (len $article.Tags) 0 }}
+  {{ range $index, $tag := $article.Tags }}
+  <span class="tag"><a href="{{ $app.Url "Tag" (H "Tag" $tag "Page" 0)}}" rel="tag" itemprop="keywords">{{ $tag }}</a></span>
+  {{ end }}
+{{ end}}
+</div>
+</header>
+  <div itemprop="articleBody">
+    {{ $article.BodyHtml | raw }}
+  </div>
+</article>
+
+{{ if ne $index $numa }}
+  <hr class="list1sep" />
+{{ end }}
+
+{{end}}
+
+{{ paginate . "page" }}
+
