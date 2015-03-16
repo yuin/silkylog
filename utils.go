@@ -1,6 +1,7 @@
 package main
 
 import (
+	"archive/zip"
 	"bufio"
 	"bytes"
 	"errors"
@@ -8,7 +9,9 @@ import (
 	"github.com/mitchellh/mapstructure"
 	"github.com/yuin/gopher-lua"
 	htemplate "html/template"
+	"io"
 	"io/ioutil"
+	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -175,6 +178,64 @@ func copyTree(source string, dest string) error {
 			return err
 		}
 	}
+	return nil
+}
+
+func download(url, path string) error {
+	response, err := http.Get(url)
+	if err != nil {
+		return err
+	}
+	if response.StatusCode != 200 {
+		return errors.New("failed to download '" + url + "'")
+	}
+	body, err1 := ioutil.ReadAll(response.Body)
+	if err1 != nil {
+		return err1
+	}
+	if err := writeFile(string(body), path); err != nil {
+		return err
+	}
+	return nil
+}
+
+func unzip(zipfile, dest string) error {
+	if !pathExists(dest) {
+		err := os.MkdirAll(dest, 0755)
+		if err != nil {
+			return err
+		}
+	}
+
+	r, err := zip.OpenReader(zipfile)
+	if err != nil {
+		return err
+	}
+	defer r.Close()
+
+	for _, f := range r.File {
+		rc, err := f.Open()
+		if err != nil {
+			return err
+		}
+		defer rc.Close()
+		path := filepath.Join(dest, f.Name)
+		if f.FileInfo().IsDir() {
+			os.MkdirAll(path, f.Mode())
+		} else {
+			f, err := os.OpenFile(
+				path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode())
+			if err != nil {
+				return err
+			}
+			defer f.Close()
+			_, err = io.Copy(f, rc)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
 	return nil
 }
 

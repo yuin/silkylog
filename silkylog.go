@@ -26,6 +26,24 @@ func main() {
 	cliapp.Version = "0.1"
 	cliapp.Commands = []cli.Command{
 		{
+			Name:  "site",
+			Usage: "create a new site",
+			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name:  "path",
+					Usage: "path to create a site(default: current directory)",
+				},
+			},
+			Action: func(c *cli.Context) {
+				createRootLState(app)
+				var err error
+				err = newsite(app, c.String("path"))
+				if err != nil {
+					exitApplication(err.Error(), 1)
+				}
+			},
+		},
+		{
 			Name:  "build",
 			Usage: "build my site",
 			Flags: []cli.Flag{

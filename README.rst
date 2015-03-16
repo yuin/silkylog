@@ -8,18 +8,27 @@ silkylog is a simple and extensible static site generator written in Go and `Gop
 Usage
 ----------------------------------------------------------------
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Create an environment
+Installation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: bash
-    
-    git clone https://github.com/yuin/silkylog.git myblog
-    cd myblog
-    go get -u github.com/russross/blackfriday
-    go get -u github.com/codegangsta/cli
-    go get -u github.com/mitchellh/mapstructure
-    go build
-    mkdir public_html
+
+    go get -u github.com/yuin/silkylog
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Create new site
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: bash
+
+    silkylog site --path=<PATH_TO_NEW_SITE>
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Write your first article
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: bash
+
     silkylog new
     silkylog build
     silkylog serve

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -24,6 +25,65 @@ func clean(app *application) error {
 	app.Log("-----------------------------")
 	app.Log("clean: OK")
 	app.Log("-----------------------------")
+	return nil
+}
+
+func newsite(app *application, path string) error {
+	if len(path) == 0 {
+		return errors.New("empty path")
+	}
+	zipfile, err := ioutil.TempFile("", "silkylog")
+	if err != nil {
+		return err
+	}
+	zipfile.Close()
+	zippath := zipfile.Name()
+	if err := download("https://github.com/yuin/silkylog/archive/master.zip", zippath); err != nil {
+		return err
+	}
+	defer os.Remove(zippath)
+	if err := unzip(zippath, path); err != nil {
+		return err
+	}
+	silkylogpath := filepath.Join(path, "silkylog-master")
+	if files, err := filepath.Glob(filepath.Join(silkylogpath, "*")); err != nil {
+		return err
+	} else {
+		for _, file := range files {
+			if err := os.Rename(file, filepath.Join(path, filepath.Base(file))); err != nil {
+				return err
+			}
+		}
+	}
+	if err := os.Remove(silkylogpath); err != nil {
+		return err
+	}
+
+    // remove *.go files
+	if gofiles, err := filepath.Glob(filepath.Join(path, "*.go")); err != nil {
+		return err
+	} else {
+		for _, gofile := range gofiles {
+			if err := os.Remove(gofile); err != nil {
+				return err
+			}
+		}
+	}
+	// remove files
+	for _, rfile := range []string{".gitignore", "LICENSE", "README.rst"} {
+		rpath := filepath.Join(path, rfile)
+		if err := os.Remove(rpath); err != nil {
+			return err
+		}
+	}
+	// create dirs
+	for _, ndir := range []string{"public_html"} {
+		ndirpath := filepath.Join(path, ndir)
+		if err := os.MkdirAll(ndirpath, 0755); err != nil {
+			return err
+		}
+	}
+	app.Log("new site was created under %s, enjoy!", path)
 	return nil
 }
 
