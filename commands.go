@@ -46,6 +46,32 @@ func newsite(app *application, path string) error {
 		return err
 	}
 	silkylogpath := filepath.Join(path, "silkylog-master")
+
+    // remove *.go files
+	if gofiles, err := filepath.Glob(filepath.Join(silkylogpath, "*.go")); err != nil {
+		return err
+	} else {
+		for _, gofile := range gofiles {
+			if err := os.Remove(gofile); err != nil {
+				return err
+			}
+		}
+	}
+	// remove files
+	for _, rfile := range []string{".gitignore", "LICENSE", "README.rst"} {
+		rpath := filepath.Join(silkylogpath, rfile)
+		if err := os.Remove(rpath); err != nil {
+			return err
+		}
+	}
+	// create dirs
+	for _, ndir := range []string{"public_html"} {
+		ndirpath := filepath.Join(silkylogpath, ndir)
+		if err := os.MkdirAll(ndirpath, 0755); err != nil {
+			return err
+		}
+	}
+
 	if files, err := filepath.Glob(filepath.Join(silkylogpath, "*")); err != nil {
 		return err
 	} else {
@@ -59,30 +85,6 @@ func newsite(app *application, path string) error {
 		return err
 	}
 
-    // remove *.go files
-	if gofiles, err := filepath.Glob(filepath.Join(path, "*.go")); err != nil {
-		return err
-	} else {
-		for _, gofile := range gofiles {
-			if err := os.Remove(gofile); err != nil {
-				return err
-			}
-		}
-	}
-	// remove files
-	for _, rfile := range []string{".gitignore", "LICENSE", "README.rst"} {
-		rpath := filepath.Join(path, rfile)
-		if err := os.Remove(rpath); err != nil {
-			return err
-		}
-	}
-	// create dirs
-	for _, ndir := range []string{"public_html"} {
-		ndirpath := filepath.Join(path, ndir)
-		if err := os.MkdirAll(ndirpath, 0755); err != nil {
-			return err
-		}
-	}
 	app.Log("new site was created under %s, enjoy!", path)
 	return nil
 }
