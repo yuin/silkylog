@@ -74,19 +74,19 @@ func (vm *viewModel) Lua(name string, args ...interface{}) template.HTML {
 		for _, arg := range args {
 			lv, ok := arg.(lua.LValue)
 			if !ok {
-				lv = GoToLua(L, arg)
+				lv = goToLua(L, arg)
 			}
 			L.Push(lv)
 		}
 		L.Call(len(args), 1)
-		return template.HTML(L.Get(-1).String())
+		return template.HTML(luaPop(L).String())
 	} else {
 		return template.HTML(fn.String())
 	}
 }
 
 func (vm *viewModel) LValue(v interface{}) lua.LValue {
-	return GoToLua(vm.L, v)
+	return goToLua(vm.L, v)
 }
 
 func newRenderer() *renderer {

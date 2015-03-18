@@ -127,7 +127,7 @@ func (app *application) convertArticleText(L *lua.LState, markup, format string)
 		if err := L.PCall(1, 1, nil); err != nil {
 			return "", err
 		}
-		return L.Get(-1).String(), nil
+		return luaPop(L).String(), nil
 	}
 	_opts, ok := processor.(*lua.LTable)
 	if !ok {

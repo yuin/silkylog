@@ -171,7 +171,7 @@ func copyTree(source string, dest string) error {
 		var err error
 		if isFile(srcfile) {
 			err = copyFile(srcfile, destfile)
-		} else {
+		} else if isDir(srcfile) {
 			err = copyTree(srcfile, destfile)
 		}
 		if err != nil {
@@ -302,7 +302,7 @@ func luaToGo(lv lua.LValue) interface{} {
 	}
 }
 
-func GoToLua(L *lua.LState, v interface{}) lua.LValue {
+func goToLua(L *lua.LState, v interface{}) lua.LValue {
 	var art article
 	at := reflect.TypeOf(art)
 	rv := reflect.ValueOf(v)
@@ -328,18 +328,24 @@ func GoToLua(L *lua.LState, v interface{}) lua.LValue {
 	case kind == reflect.Slice:
 		tb := L.NewTable()
 		for i := 0; i < rv.Len(); i++ {
-			tb.Append(GoToLua(L, rv.Index(i).Interface()))
+			tb.Append(goToLua(L, rv.Index(i).Interface()))
 		}
 		return tb
 	case kind == reflect.Map:
 		tb := L.NewTable()
 		for _, key := range rv.MapKeys() {
-			tb.RawSet(GoToLua(L, key.Interface()), GoToLua(L, rv.MapIndex(key).Interface()))
+			tb.RawSet(goToLua(L, key.Interface()), goToLua(L, rv.MapIndex(key).Interface()))
 		}
 		return tb
 	default:
 		return lua.LNil
 	}
+}
+
+func luaPop(L *lua.LState) lua.LValue {
+	lv := L.Get(-1)
+	L.Pop(1)
+	return lv
 }
 
 func timeToLuaTable(L *lua.LState, t time.Time) *lua.LTable {
