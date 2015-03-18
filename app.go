@@ -117,10 +117,8 @@ func (app *application) ConvertArticleText(art *article) error {
 }
 
 func (app *application) convertArticleText(L *lua.LState, markup, format string) (string, error) {
-	app.m.Lock()
-	processor, ok := app.Config.MarkupProcessors[format]
-	app.m.Unlock()
-	if !ok {
+	processor := L.GetField(L.GetField(L.GetGlobal("CONFIG"), "markup_processors"), format)
+	if processor == lua.LNil {
 		return "", errors.New("unknown markup format: " + format)
 	}
 	if fn, ok := processor.(*lua.LFunction); ok {
@@ -131,10 +129,11 @@ func (app *application) convertArticleText(L *lua.LState, markup, format string)
 		}
 		return L.Get(-1).String(), nil
 	}
-	opts, ok := processor.(map[interface{}]interface{})
+	_opts, ok := processor.(*lua.LTable)
 	if !ok {
 		return "", errors.New("markup_processors must be a function or table")
 	}
+    opts := luaToGo(_opts).(map[interface{}]interface{})
 
 	switch format {
 	case ".md":

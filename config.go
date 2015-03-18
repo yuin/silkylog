@@ -81,9 +81,11 @@ func loadConfig(L *lua.LState) *config {
 	L.PreloadModule("silkylog", LuaModuleLoader)
 	cfg := &config{}
 	L.SetGlobal("config", L.NewFunction(func(L *lua.LState) int {
-		if err := luaToGoStruct(L.CheckTable(1), cfg); err != nil {
+		tbl := L.CheckTable(1)
+		if err := luaToGoStruct(tbl, cfg); err != nil {
 			exitApplication(err.Error(), 1)
 		}
+		L.SetGlobal("CONFIG", tbl)
 		return 0
 	}))
 	if err := L.DoFile("config.lua"); err != nil {
@@ -91,9 +93,11 @@ func loadConfig(L *lua.LState) *config {
 	}
 	themecfg := &config{}
 	L.SetGlobal("config", L.NewFunction(func(L *lua.LState) int {
-		if err := luaToGoStruct(L.CheckTable(1), themecfg); err != nil {
+		tbl := L.CheckTable(1)
+		if err := luaToGoStruct(tbl, themecfg); err != nil {
 			exitApplication(err.Error(), 1)
 		}
+		L.SetGlobal("THEME_CONFIG", tbl)
 		return 0
 	}))
 	if err := L.DoFile(filepath.Join(cfg.ThemeDir, cfg.Theme, "theme.lua")); err != nil {
