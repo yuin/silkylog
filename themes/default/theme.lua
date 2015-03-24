@@ -24,8 +24,8 @@ function seealso(art, tags)
   local seen = {}
   seen[art.permlink_path] = 1
   local i = 0
-  for j, tag in ipairs(art.tags) do
-    for k, article in ipairs(tags[tag]) do
+  for j, tag in ipairs(art.tags or {}) do
+    for k, article in ipairs(tags[tag] or {}) do
       if seen[article.permlink_path] == nil then
         table.insert(buf, string.format("<li><a href=\"%s\">%s</a></li>", article.permlink_path, silkylog.htmlescape(article.title)))
         seen[article.permlink_path] = 1

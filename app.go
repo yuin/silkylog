@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/russross/blackfriday"
+	"github.com/yuin/gluamapper"
 	"github.com/yuin/gopher-lua"
 	htemplate "html/template"
 	"os"
@@ -133,7 +134,7 @@ func (app *application) convertArticleText(L *lua.LState, markup, format string)
 	if !ok {
 		return "", errors.New("markup_processors must be a function or table")
 	}
-    opts := luaToGo(_opts).(map[interface{}]interface{})
+    opts := gluamapper.ToGoValue(_opts, gluamapper.Option{}).(map[interface{}]interface{})
 
 	switch format {
 	case ".md":

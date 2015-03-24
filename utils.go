@@ -6,7 +6,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/mitchellh/mapstructure"
 	"github.com/yuin/gopher-lua"
 	htemplate "html/template"
 	"io"
@@ -53,10 +52,6 @@ func readInput(prompt, defaults string) string {
 		return defaults
 	}
 	return strings.TrimSpace(s)
-}
-
-func toCapCase(s string) string {
-	return strings.ToUpper(string(s[0])) + regexp.MustCompile(`_([a-z])`).ReplaceAllStringFunc(s[1:len(s)], func(s string) string { return strings.ToUpper(s[1:len(s)]) })
 }
 
 func urlEncode(s string) string {
@@ -263,43 +258,6 @@ func exitApplication(msg string, code int) {
 	fmt.Fprint(out, msg)
 	fmt.Fprint(out, "\n")
 	os.Exit(code)
-}
-
-func luaToGoStruct(tbl *lua.LTable, st interface{}) error {
-	mp, ok := luaToGo(tbl).(map[interface{}]interface{})
-	if !ok {
-		return errors.New("arguments #1 must be a table")
-	}
-	return mapstructure.Decode(mp, st)
-}
-
-func luaToGo(lv lua.LValue) interface{} {
-	switch v := lv.(type) {
-	case *lua.LNilType:
-		return nil
-	case lua.LBool:
-		return bool(v)
-	case lua.LString:
-		return string(v)
-	case lua.LNumber:
-		return float64(v)
-	case *lua.LTable:
-		if v.MaxN() == 0 { // table
-			ret := make(map[interface{}]interface{})
-			v.ForEach(func(key, value lua.LValue) {
-				ret[luaToGo(key)] = luaToGo(value)
-			})
-			return ret
-		} else { // array
-			ret := make([]interface{}, 0, v.MaxN())
-			v.ForEach(func(key, value lua.LValue) {
-				ret = append(ret, luaToGo(value))
-			})
-			return ret
-		}
-	default:
-		return v
-	}
 }
 
 func goToLua(L *lua.LState, v interface{}) lua.LValue {

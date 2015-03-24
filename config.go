@@ -2,52 +2,53 @@ package main
 
 import (
 	"fmt"
+	"github.com/yuin/gluamapper"
 	"github.com/yuin/gopher-lua"
 	"path/filepath"
 	"time"
 )
 
 type config struct {
-	Debug       bool     `mapstructure:"debug"`
-	SiteUrl     string   `mapstructure:"site_url"`
-	Editor      []string `mapstructure:"editor"`
-	NumThreads  int      `mapstructure:"numthreads"`
-	Timezone    string   `mapstructure:"timezone"`
-	Theme       string   `mapstructure:"theme"`
-	Pagination1 int      `mapstructure:"pagination1"`
-	Pagination2 int      `mapstructure:"pagination2"`
-	TrimHtml    bool     `mapstructure:"trim_html"`
+	Debug       bool
+	SiteUrl     string
+	Editor      []string
+	NumThreads  int
+	Timezone    string
+	Theme       string
+	Pagination1 int
+	Pagination2 int
+	TrimHtml    bool
 
-	Params map[string]interface{} `mapstructure:"params"`
+	Params map[string]interface{}
 
-	TopUrlPath string `mapstructure:"top_url_path"`
+	TopUrlPath string
 
-	ArticleUrlPath string `mapstructure:"article_url_path"`
-	ArticleTitle   string `mapstructure:"article_title"`
+	ArticleUrlPath string
+	ArticleTitle   string
 
-	IndexUrlPath string `mapstructure:"index_url_path"`
-	IndexTitle   string `mapstructure:"index_title"`
+	IndexUrlPath string
+	IndexTitle   string
 
-	TagUrlPath string `mapstructure:"tag_url_path"`
-	TagTitle   string `mapstructure:"tag_title"`
+	TagUrlPath string
+	TagTitle   string
 
-	AnnualUrlPath string `mapstructure:"annual_url_path"`
-	AnnualTitle   string `mapstructure:"annual_title"`
+	AnnualUrlPath string
+	AnnualTitle   string
 
-	MonthlyUrlPath string `mapstructure:"monthly_url_path"`
-	MonthlyTitle   string `mapstructure:"monthly_title"`
+	MonthlyUrlPath string
+	MonthlyTitle   string
 
-	IncludeUrlPath string `mapstructure:"include_url_path"`
-	FeedUrlPath    string `mapstructure:"feed_url_path"`
-	FileUrlPath    string `mapstructure:"file_url_path"`
+	IncludeUrlPath string
+	FeedUrlPath    string
+	FileUrlPath    string
 
-	ContentDir string      `mapstructure:"content_dir"`
-	ThemeDir   string      `mapstructure:"theme_dir"`
-	OutputDir  string      `mapstructure:"output_dir"`
-	ExtraFiles []extraFile `mapstructure:"extra_files"`
-	Clean      []string    `mapstructure:"clean"`
+	ContentDir string
+	ThemeDir   string
+	OutputDir  string
+	ExtraFiles []extraFile
+	Clean      []string
 
-	MarkupProcessors map[string]interface{} `mapstructure:"markup_processors"`
+	MarkupProcessors map[string]interface{}
 
 	ThemeConfig *config
 
@@ -58,12 +59,6 @@ type extraFile struct {
 	Src      string `mapstructure:"src"`
 	Dst      string `mapstructure:"dst"`
 	Template bool   `mapstructure:"template"`
-}
-
-func (cfg *config) convertParamsCase() {
-	for key, value := range cfg.Params {
-		cfg.Params[toCapCase(key)] = value
-	}
 }
 
 func (cfg *config) Location() *time.Location {
@@ -82,7 +77,7 @@ func loadConfig(L *lua.LState) *config {
 	cfg := &config{}
 	L.SetGlobal("config", L.NewFunction(func(L *lua.LState) int {
 		tbl := L.CheckTable(1)
-		if err := luaToGoStruct(tbl, cfg); err != nil {
+		if err := gluamapper.Map(tbl, cfg); err != nil {
 			exitApplication(err.Error(), 1)
 		}
 		L.SetGlobal("CONFIG", tbl)
@@ -94,7 +89,7 @@ func loadConfig(L *lua.LState) *config {
 	themecfg := &config{}
 	L.SetGlobal("config", L.NewFunction(func(L *lua.LState) int {
 		tbl := L.CheckTable(1)
-		if err := luaToGoStruct(tbl, themecfg); err != nil {
+		if err := gluamapper.Map(tbl, themecfg); err != nil {
 			exitApplication(err.Error(), 1)
 		}
 		L.SetGlobal("THEME_CONFIG", tbl)
@@ -104,7 +99,6 @@ func loadConfig(L *lua.LState) *config {
 		exitApplication(fmt.Sprintf("Failed to load theme.lua:\n\n%v", err.Error()), 1)
 	}
 	cfg.ThemeConfig = themecfg
-	cfg.convertParamsCase()
 
 	return cfg
 }

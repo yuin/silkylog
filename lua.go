@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"github.com/yuin/gluamapper"
 	"github.com/yuin/gopher-lua"
 	"html"
 	"os/exec"
@@ -140,7 +141,7 @@ func luaFormatMarkup(L *lua.LState) int {
 
 func luaMapArg(L *lua.LState, idx int) map[interface{}]interface{} {
 	app := appInstance()
-	data := luaToGo(L.CheckTable(idx)).(map[interface{}]interface{})
+	data := gluamapper.ToGoValue(L.CheckTable(idx), gluamapper.Option{NameFunc: gluamapper.Id}).(map[interface{}]interface{})
 	data["App"] = app
 	return data
 }
