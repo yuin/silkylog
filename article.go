@@ -107,6 +107,8 @@ func loadArticle(app *application, path string) (*article, error) {
 		}
 	}
 	art.BodyText = strings.Join(buf, "\n")
+	art.PermlinkPath = app.Url("Article", art)
+	art.PermlinkUrl = app.Config.SiteUrl + strings.TrimLeft(app.Url("Article", art), "/")
 	return art, nil
 }
 

@@ -134,7 +134,7 @@ func (app *application) convertArticleText(L *lua.LState, markup, format string)
 	if !ok {
 		return "", errors.New("markup_processors must be a function or table")
 	}
-    opts := gluamapper.ToGoValue(_opts, gluamapper.Option{}).(map[interface{}]interface{})
+	opts := gluamapper.ToGoValue(_opts, gluamapper.Option{}).(map[interface{}]interface{})
 
 	switch format {
 	case ".md":
@@ -226,7 +226,7 @@ func (app *application) CompileTemplates() (err error) {
 	return
 }
 
-func (app *application) LoadArticles() error {
+func (app *application) LoadArticles(status string) error {
 	c := app.Config
 	basedir := filepath.Join(c.ContentDir, "articles")
 	lastpath := ""
@@ -246,9 +246,9 @@ func (app *application) LoadArticles() error {
 		if err != nil {
 			return err
 		}
-		art.PermlinkPath = app.Url("Article", art)
-		art.PermlinkUrl = app.Config.SiteUrl + strings.TrimLeft(app.Url("Article", art), "/")
-		app.Articles = append(app.Articles, art)
+		if status == "*" || strings.Contains(status, art.Status) {
+			app.Articles = append(app.Articles, art)
+		}
 		return nil
 
 	})

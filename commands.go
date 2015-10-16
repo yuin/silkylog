@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
 )
 
@@ -47,7 +46,7 @@ func newsite(app *application, path string) error {
 	}
 	silkylogpath := filepath.Join(path, "silkylog-master")
 
-    // remove *.go files
+	// remove *.go files
 	if gofiles, err := filepath.Glob(filepath.Join(silkylogpath, "*.go")); err != nil {
 		return err
 	} else {
@@ -135,8 +134,6 @@ func preview(app *application, port int, path string) error {
 				w.Write(([]byte)(err.Error()))
 				return
 			}
-			art.PermlinkPath = app.Url("Article", art)
-			art.PermlinkUrl = app.Config.SiteUrl + strings.TrimLeft(app.Url("Article", art), "/")
 			renderer := newRenderer()
 			if err := app.ConvertArticleText(art); err != nil {
 				w.Write(([]byte)(err.Error()))

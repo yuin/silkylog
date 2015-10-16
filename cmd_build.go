@@ -95,7 +95,7 @@ func build(app *application) error {
 	app.Log("build start")
 	var err error
 	app.CompileTemplates()
-	err = app.LoadArticles()
+	err = app.LoadArticles("published")
 	if err != nil {
 		return err
 	}
@@ -131,7 +131,7 @@ func build(app *application) error {
 			}(art)
 		}
 		wg.Wait()
-        quit <- 1
+		quit <- 1
 		close(errch)
 		app.Log("%d articles", app.Stats.Get("Article"))
 	}
