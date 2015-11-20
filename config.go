@@ -5,6 +5,8 @@ import (
 	"github.com/yuin/gluamapper"
 	"github.com/yuin/gopher-lua"
 	"path/filepath"
+	"regexp"
+	"strconv"
 	"time"
 )
 
@@ -63,11 +65,23 @@ type extraFile struct {
 
 func (cfg *config) Location() *time.Location {
 	if cfg.location == nil {
-		loc, err := time.LoadLocation(cfg.Timezone)
-		if err != nil {
-			exitApplication("invalid timezone: "+cfg.Timezone, 1)
+		re := regexp.MustCompile(`([^\s]+) ([\+\-])(\d+):(\d+)`)
+		groups := re.FindStringSubmatch(cfg.Timezone)
+		if len(groups) == 0 {
+			loc, err := time.LoadLocation(cfg.Timezone)
+			if err != nil {
+				exitApplication("invalid timezone: "+cfg.Timezone, 1)
+			}
+			cfg.location = loc
+		} else {
+			hour, _ := strconv.ParseInt(groups[3], 10, 32)
+			min, _ := strconv.ParseInt(groups[4], 10, 32)
+			sec := hour*60*60 + min*60
+			if groups[2] == "-" {
+				sec = sec * -1
+			}
+			cfg.location = time.FixedZone(groups[1], int(sec))
 		}
-		cfg.location = loc
 	}
 	return cfg.location
 }

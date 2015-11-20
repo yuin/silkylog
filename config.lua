@@ -5,7 +5,7 @@ config {
   site_url            = "http://example.com/",
   editor              = {"vim"},
   numthreads          = 8,
-  timezone            = "Asia/Tokyo",
+  timezone            = "JST +09:00",
   theme               = "default",
   pagination1         = 3,
   pagination2         = 50,
