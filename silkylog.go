@@ -34,13 +34,14 @@ func main() {
 					Usage: "path to create a site(default: current directory)",
 				},
 			},
-			Action: func(c *cli.Context) {
+			Action: func(c *cli.Context) error {
 				createRootLState(app)
 				var err error
 				err = newsite(app, c.String("path"))
 				if err != nil {
-					exitApplication(err.Error(), 1)
+					return cli.NewExitError(err.Error(), 1)
 				}
+				return nil
 			},
 		},
 		{
@@ -52,31 +53,33 @@ func main() {
 					Usage: "clean all data before building my site",
 				},
 			},
-			Action: func(c *cli.Context) {
+			Action: func(c *cli.Context) error {
 				createRootLState(app)
 				var err error
 				if c.Bool("clean") {
 					err = clean(app)
 					if err != nil {
-						exitApplication(err.Error(), 1)
+						return cli.NewExitError(err.Error(), 1)
 					}
 				}
 				err = build(app)
 				if err != nil {
-					exitApplication(err.Error(), 1)
+					return cli.NewExitError(err.Error(), 1)
 				}
+				return nil
 			},
 		},
 		{
 			Name:  "clean",
 			Usage: "clean all data",
-			Action: func(c *cli.Context) {
+			Action: func(c *cli.Context) error {
 				createRootLState(app)
 				var err error
 				err = clean(app)
 				if err != nil {
-					exitApplication(err.Error(), 1)
+					return cli.NewExitError(err.Error(), 1)
 				}
+				return nil
 			},
 		},
 		{
@@ -88,7 +91,7 @@ func main() {
 					Usage: "server port(default 7000)",
 				},
 			},
-			Action: func(c *cli.Context) {
+			Action: func(c *cli.Context) error {
 				createRootLState(app)
 				port := c.Int("port")
 				if port == 0 {
@@ -97,8 +100,9 @@ func main() {
 				var err error
 				err = serve(app, port)
 				if err != nil {
-					exitApplication(err.Error(), 1)
+					return cli.NewExitError(err.Error(), 1)
 				}
+				return nil
 			},
 		},
 		{
@@ -114,7 +118,7 @@ func main() {
 					Usage: "server port(default 7000)",
 				},
 			},
-			Action: func(c *cli.Context) {
+			Action: func(c *cli.Context) error {
 				createRootLState(app)
 				var err error
 				port := c.Int("port")
@@ -123,20 +127,22 @@ func main() {
 				}
 				err = preview(app, port, c.String("path"))
 				if err != nil {
-					exitApplication(err.Error(), 1)
+					return cli.NewExitError(err.Error(), 1)
 				}
+				return nil
 			},
 		},
 		{
 			Name:  "new",
 			Usage: "create new article",
-			Action: func(c *cli.Context) {
+			Action: func(c *cli.Context) error {
 				createRootLState(app)
 				var err error
 				err = newarticle(app)
 				if err != nil {
-					exitApplication(err.Error(), 1)
+					return cli.NewExitError(err.Error(), 1)
 				}
+				return nil
 			},
 		},
 	}
