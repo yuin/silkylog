@@ -104,6 +104,8 @@ if [ ! `which ghr` >/dev/null 2>&1 ]; then
   [ $? -ne 0 ] && abort "Failed to install ghr"
 fi
 
+CPU_NUM=$(python -c 'import multiprocessing; print(multiprocessing.cpu_count())')
+print-msg I "num of cpus: ${CPU_NUM}"
 
 _OLD_IFS="${IFS}"
 IFS='
@@ -140,19 +142,18 @@ if [ "${RELEASE_TAG}" != "snapshot" ]; then
 fi
 
 rm -rf "${SCRIPT_DIR}/packages"
-print-msg I "gox -output=${SCRIPT_DIR}/packages/{{.Dir}}_${RELEASE_TAG}_{{.OS}}_{{.Arch}}"
-gox -output="${SCRIPT_DIR}/packages/{{.Dir}}_${RELEASE_TAG}_{{.OS}}_{{.Arch}}"
+
+print-msg I "gox -output=${SCRIPT_DIR}/packages/{{.Dir}}_${RELEASE_TAG}_{{.OS}}_{{.Arch}}" -ldflags="-s"
+env CGO_ENABLED=0 gox -output="${SCRIPT_DIR}/packages/{{.Dir}}_${RELEASE_TAG}_{{.OS}}_{{.Arch}}" -ldflags="-s"
 handle-build-result $?
 
-uname -a | grep 'Linux' | grep -q 'x86_64'
-if [ $? -eq 0 ]; then
-  print-msg I "gox -output=${SCRIPT_DIR}/packages/{{.Dir}}_${RELEASE_TAG}_{{.OS}}_{{.Arch}} -osarch=linux/amd64 -ldflags='-linkmode external -extldflags "-static"'"
-  gox -output="${SCRIPT_DIR}/packages/{{.Dir}}_${RELEASE_TAG}_{{.OS}}_{{.Arch}}" -osarch="linux/amd64" -ldflags='-linkmode external -extldflags "-static"'
-  handle-build-result $?
+_NUM_THREADS=${CPU_NUM}
+if [ -z "${CPU_NUM}" -o ${CPU_NUM} -lt 4 ]; then
+  _NUM_THREADS=4
 fi
 
-print-msg I "ghr --delete --token=**** ${RELEASE_TAG} packages"
-ghr --delete --token=${GITHUB_TOKEN} ${RELEASE_TAG} packages
+print-msg I "ghr --parallel=${_NUM_THREADS} --delete --token=**** ${RELEASE_TAG} packages"
+ghr --parallel=${_NUM_THREADS} --delete --token=${GITHUB_TOKEN} ${RELEASE_TAG} packages
 [ $? -ne 0 ] && abort "Failed to upload some packages"
 print-msg W "All packages have been uploaded successfully" CYAN
 
