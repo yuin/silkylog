@@ -134,7 +134,11 @@ func (app *application) convertArticleText(L *lua.LState, markup, format string)
 	if !ok {
 		return "", errors.New("markup_processors must be a function or table")
 	}
-	opts := gluamapper.ToGoValue(_opts, gluamapper.Option{}).(map[interface{}]interface{})
+	mapperOpts := gluamapper.Option{
+		NameFunc: gluamapper.Id,
+		TagName:  "gluamapper",
+	}
+	opts := gluamapper.ToGoValue(_opts, mapperOpts).(map[interface{}]interface{})
 
 	switch format {
 	case ".md":
@@ -149,7 +153,8 @@ func (app *application) convertArticleText(L *lua.LState, markup, format string)
 			return "", err2
 		}
 		renderer := blackfriday.HtmlRenderer(htmlopts, "", "")
-		return string(blackfriday.Markdown(([]byte)(markup), renderer, exts)), nil
+		html := string(blackfriday.Markdown(([]byte)(markup), renderer, exts))
+		return strings.Replace(html, "<pre><code", "<pre class=\"prettyprint\"><code", -1), nil
 	}
 	return "", errors.New("no builtin processors found for '" + format + "'")
 }
