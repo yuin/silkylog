@@ -36,7 +36,7 @@ func (a articles) Len() int { return len(a) }
 
 func (a articles) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
 
-func (a articles) Less(i, j int) bool { return a[i].UpdatedAt.Unix() > a[j].UpdatedAt.Unix() }
+func (a articles) Less(i, j int) bool { return a[i].PostedAt.Unix() > a[j].PostedAt.Unix() }
 
 func (a articles) SubList(i, j int) articles {
 	if i < 0 {
