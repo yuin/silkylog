@@ -43,7 +43,7 @@ handle-build-result () {
   fi
 }
 
-[ `which greadlink` >/dev/null 2>&1 ] && _readlink=greadlink || _readlink=readlink
+which greadlink >/dev/null 2>&1  && _readlink=greadlink || _readlink=readlink
 SCRIPT_DIR=$(dirname $(${_readlink} -f $0))
 cd "${SCRIPT_DIR}"
 
@@ -91,13 +91,13 @@ done
 
 _GO_VERSION=`go version`
 [ $? -ne 0 ] && abort "'go' command not found on PATH"
-if [ ! `which gox` >/dev/null 2>&1 ]; then
+if ! which gox >/dev/null 2>&1 ; then
   print-msg I "'gox' command not found on PATH."
   print-msg I "Installing gox..."
   go get github.com/mitchellh/gox
   [ $? -ne 0 ] && abort "Failed to install gox"
 fi
-if [ ! `which ghr` >/dev/null 2>&1 ]; then
+if ! which ghr >/dev/null 2>&1 ; then
   print-msg I "'ghr' command not found on PATH."
   print-msg I "Installing ghr..."
   go get github.com/tcnksm/ghr
