@@ -167,21 +167,21 @@ func parseArticleHeader(app *application, art *article, line string) error {
 
 func (art *article) ToLua(L *lua.LState) *lua.LTable {
 	tb := L.NewTable()
-	tb.RawSetH(lua.LString("file_path"), lua.LString(art.FilePath))
-	tb.RawSetH(lua.LString("format"), lua.LString(art.Format))
-	tb.RawSetH(lua.LString("title"), lua.LString(art.Title))
-	tb.RawSetH(lua.LString("slug"), lua.LString(art.Slug))
-	tb.RawSetH(lua.LString("body_text"), lua.LString(art.BodyText))
-	tb.RawSetH(lua.LString("body_html"), lua.LString(art.BodyHtml))
-	tb.RawSetH(lua.LString("status"), lua.LString(art.Status))
+	tb.RawSetString("file_path", lua.LString(art.FilePath))
+	tb.RawSetString("format", lua.LString(art.Format))
+	tb.RawSetString("title", lua.LString(art.Title))
+	tb.RawSetString("slug", lua.LString(art.Slug))
+	tb.RawSetString("body_text", lua.LString(art.BodyText))
+	tb.RawSetString("body_html", lua.LString(art.BodyHtml))
+	tb.RawSetString("status", lua.LString(art.Status))
 	tags := L.NewTable()
 	for _, tag := range art.Tags {
 		tags.Append(lua.LString(tag))
 	}
-	tb.RawSetH(lua.LString("tags"), tags)
-	tb.RawSetH(lua.LString("posted_at"), timeToLuaTable(L, art.PostedAt))
-	tb.RawSetH(lua.LString("updated_at"), timeToLuaTable(L, art.UpdatedAt))
-	tb.RawSetH(lua.LString("permlink_path"), lua.LString(art.PermlinkPath))
-	tb.RawSetH(lua.LString("permlink_url"), lua.LString(art.PermlinkUrl))
+	tb.RawSetString("tags", tags)
+	tb.RawSetString("posted_at", timeToLuaTable(L, art.PostedAt))
+	tb.RawSetString("updated_at", timeToLuaTable(L, art.UpdatedAt))
+	tb.RawSetString("permlink_path", lua.LString(art.PermlinkPath))
+	tb.RawSetString("permlink_url", lua.LString(art.PermlinkUrl))
 	return tb
 }
