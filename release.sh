@@ -89,24 +89,20 @@ _GO_VERSION=`go version`
 if ! which gox >/dev/null 2>&1 ; then
   print-msg I "'gox' command not found on PATH."
   print-msg I "Installing gox..."
-  go get github.com/mitchellh/gox
+  go install github.com/mitchellh/gox@latest
   [ $? -ne 0 ] && abort "Failed to install gox"
 fi
 if ! which ghr >/dev/null 2>&1 ; then
   print-msg I "'ghr' command not found on PATH."
   print-msg I "Installing ghr..."
-  go install github.com/tcnksm/ghr
+  go install github.com/tcnksm/ghr@latest
   [ $? -ne 0 ] && abort "Failed to install ghr"
 fi
 
-CPU_NUM=$(python -c 'import multiprocessing; print(multiprocessing.cpu_count())')
+CPU_NUM=$(python3 -c 'import multiprocessing; print(multiprocessing.cpu_count())')
 print-msg I "num of cpus: ${CPU_NUM}"
 
-_OLD_IFS="${IFS}"
-IFS='
-'
-GOX_OSARCHS=(`gox -osarch-list | grep 'true' | awk '{print $1}'`)
-IFS="${_OLD_IFS}"
+GOX_OSARCHS="darwin/amd64 darwin/arm64 linux/386 linux/amd64 linux/arm64 linux/armv6 windows/386 windows/amd64 windows/arm64"
 
 print-msg I "${_GO_VERSION}"
 print-msg I "tag: ${RELEASE_TAG}"
@@ -125,8 +121,8 @@ fi
 
 rm -rf "${SCRIPT_DIR}/packages"
 
-print-msg I "gox -output=${SCRIPT_DIR}/packages/{{.Dir}}_${RELEASE_TAG}_{{.OS}}_{{.Arch}}" -ldflags="-s"
-env CGO_ENABLED=0 gox -output="${SCRIPT_DIR}/packages/{{.Dir}}_${RELEASE_TAG}_{{.OS}}_{{.Arch}}" -ldflags="-s"
+print-msg I "gox -osarch "${GOX_OSARCHS}" -output=${SCRIPT_DIR}/packages/{{.Dir}}_${RELEASE_TAG}_{{.OS}}_{{.Arch}}" -ldflags="-s"
+env CGO_ENABLED=0 gox -osarch "${GOX_OSARCHS}" -output="${SCRIPT_DIR}/packages/{{.Dir}}_${RELEASE_TAG}_{{.OS}}_{{.Arch}}" -ldflags="-s"
 handle-build-result $?
 
 _NUM_THREADS=${CPU_NUM}
@@ -145,4 +141,5 @@ if [ "${_OLD_BRANCH}" != "${BRANCH}" ]; then
   [ $? -ne 0 ] && abort "Failed to checkout ${_OLD_BRANCH}"
 fi
 
+rm -rf "${SCRIPT_DIR}/packages"
 print-msg I "OK" CYAN
