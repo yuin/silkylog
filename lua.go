@@ -2,11 +2,12 @@ package main
 
 import (
 	"bytes"
-	"github.com/yuin/gluamapper"
-	"github.com/yuin/gopher-lua"
 	"html"
 	"os/exec"
 	"sync"
+
+	"github.com/yuin/gluamapper"
+	lua "github.com/yuin/gopher-lua"
 )
 
 type lStatePool struct {
@@ -48,23 +49,23 @@ var luaPool = &lStatePool{
 	saved: make([]*lua.LState, 0, 4),
 }
 
+// LuaModuleLoader loads lua functions.
 func LuaModuleLoader(L *lua.LState) int {
 	mod := L.SetFuncs(L.NewTable(), exports)
-	//L.SetField(mod, "name", lua.LString("value"))
 	L.Push(mod)
 	return 1
 }
 
 var exports = map[string]lua.LGFunction{
 	"runprocessor": luaRunProcessor,
-	"htmlescape":   luaHtmlEscape,
-	"htmlunescape": luaHtmlUnescape,
-	"urlencode":    luaUrlEncode,
+	"htmlescape":   luaHTMLEscape,
+	"htmlunescape": luaHTMLUnescape,
+	"urlencode":    luaURLEncode,
 	"formatmarkup": luaFormatMarkup,
 	"title":        luaTitle,
 	"path":         luaPath,
-	"url":          luaUrl,
-	"fullurl":      luaFullUrl,
+	"url":          luaURL,
+	"fullurl":      luaFullURL,
 	"copyfile":     luaCopyFile,
 	"copytree":     luaCopyTree,
 	"isdir":        luaIsDir,
@@ -78,7 +79,7 @@ func luaRunProcessor(L *lua.LState) int {
 	for i := 1; i < L.GetTop(); i++ {
 		cmdline = append(cmdline, L.Get(i).String())
 	}
-	cmd := exec.Command(cmdline[0], cmdline[1:len(cmdline)]...)
+	cmd := exec.Command(cmdline[0], cmdline[1:]...)
 	stdin, err1 := cmd.StdinPipe()
 	if err1 != nil {
 		L.Push(lua.LNil)
@@ -97,7 +98,7 @@ func luaRunProcessor(L *lua.LState) int {
 		L.Push(lua.LString(err.Error()))
 		return 2
 	}
-	stdin.Close()
+	_ = stdin.Close()
 	if err := cmd.Wait(); err != nil {
 		L.Push(lua.LNil)
 		L.Push(lua.LString(err.Error()))
@@ -107,19 +108,19 @@ func luaRunProcessor(L *lua.LState) int {
 	return 1
 }
 
-func luaHtmlEscape(L *lua.LState) int {
+func luaHTMLEscape(L *lua.LState) int {
 	str := L.CheckString(1)
 	L.Push(lua.LString(html.EscapeString(str)))
 	return 1
 }
 
-func luaHtmlUnescape(L *lua.LState) int {
+func luaHTMLUnescape(L *lua.LState) int {
 	str := L.CheckString(1)
 	L.Push(lua.LString(html.UnescapeString(str)))
 	return 1
 }
 
-func luaUrlEncode(L *lua.LState) int {
+func luaURLEncode(L *lua.LState) int {
 	str := L.CheckString(1)
 	L.Push(lua.LString(urlEncode(str)))
 	return 1
@@ -141,7 +142,8 @@ func luaFormatMarkup(L *lua.LState) int {
 
 func luaMapArg(L *lua.LState, idx int) map[interface{}]interface{} {
 	app := appInstance()
-	data := gluamapper.ToGoValue(L.CheckTable(idx), gluamapper.Option{NameFunc: gluamapper.Id}).(map[interface{}]interface{})
+	data := gluamapper.ToGoValue(L.CheckTable(idx),
+		gluamapper.Option{NameFunc: gluamapper.Id}).(map[interface{}]interface{})
 	data["App"] = app
 	return data
 }
@@ -162,7 +164,7 @@ func luaPath(L *lua.LState) int {
 	return 1
 }
 
-func luaUrl(L *lua.LState) int {
+func luaURL(L *lua.LState) int {
 	app := appInstance()
 	name := L.CheckString(1)
 	data := luaMapArg(L, 2)
@@ -170,11 +172,11 @@ func luaUrl(L *lua.LState) int {
 	return 1
 }
 
-func luaFullUrl(L *lua.LState) int {
+func luaFullURL(L *lua.LState) int {
 	app := appInstance()
 	name := L.CheckString(1)
 	data := luaMapArg(L, 2)
-	L.Push(lua.LString(app.FullUrl(name, data)))
+	L.Push(lua.LString(app.FullURL(name, data)))
 	return 1
 }
 

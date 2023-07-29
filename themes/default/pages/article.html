@@ -15,7 +15,7 @@
 </div>
 </header>
   <div itemprop="articleBody">
-    {{ .Article.BodyHtml | raw }}
+    {{ .Article.BodyHTML | raw }}
 
     <div class="seealso">
       {{ .Lua "seealso" .Article .App.Tags }}

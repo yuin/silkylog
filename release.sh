@@ -95,7 +95,7 @@ fi
 if ! which ghr >/dev/null 2>&1 ; then
   print-msg I "'ghr' command not found on PATH."
   print-msg I "Installing ghr..."
-  go get github.com/tcnksm/ghr
+  go install github.com/tcnksm/ghr
   [ $? -ne 0 ] && abort "Failed to install ghr"
 fi
 

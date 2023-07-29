@@ -15,7 +15,7 @@
     <item>
       <title>{{ $article.Title }} </title>
       <link>{{ $article.PermlinkUrl }}</link>
-      <description>{{ $article.BodyHtml }}</description>
+      <description>{{ $article.BodyHTML }}</description>
       {{ range $index2, $tag := $article.Tags }}
       <category>{{ $tag }}</category>
       {{ end }}

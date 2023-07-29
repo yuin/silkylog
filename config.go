@@ -2,12 +2,13 @@ package main
 
 import (
 	"fmt"
-	"github.com/yuin/gluamapper"
-	"github.com/yuin/gopher-lua"
 	"path/filepath"
 	"regexp"
 	"strconv"
 	"time"
+
+	"github.com/yuin/gluamapper"
+	lua "github.com/yuin/gopher-lua"
 )
 
 type config struct {
@@ -19,7 +20,7 @@ type config struct {
 	Theme       string
 	Pagination1 int
 	Pagination2 int
-	TrimHtml    bool
+	TrimHTML    bool
 
 	Params map[string]interface{}
 

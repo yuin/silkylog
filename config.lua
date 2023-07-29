@@ -55,21 +55,25 @@ config {
 
   markup_processors = {
     [".md"]  = {
-      name = "blackfriday",
+      name = "goldmark",
+      mdopts = {
+        "autoHeadingID",
+        "attribute",
+      },
       htmlopts = {
-        "HTML_USE_XHTML",
-        "HTML_USE_SMARTYPANTS",
-        "HTML_SMARTYPANTS_FRACTIONS",
-        "HTML_SMARTYPANTS_LATEX_DASHES"
+        "unsafe",
       },
       exts = {
-        "EXTENSION_NO_INTRA_EMPHASIS",
-        "EXTENSION_TABLES",
-        "EXTENSION_FENCED_CODE",
-        "EXTENSION_AUTOLINK",
-        "EXTENSION_STRIKETHROUGH",
-        "EXTENSION_SPACE_HEADERS",
-        "EXTENSION_HEADER_IDS"
+        "table",
+        "strikethrough",
+        "linkify",
+        "taskList",
+        "gfm",
+        "definitionList",
+        "footnote",
+        "typographer",
+        "cjk",
+        "highlighting"
       }
     },
     [".rst"] = function(text) 

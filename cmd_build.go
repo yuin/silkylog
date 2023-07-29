@@ -3,7 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"sync"
 	"text/template"
@@ -12,7 +12,7 @@ import (
 
 func buildTemplate(app *application, renderer *renderer, tpl *template.Template, dir, counter string) error {
 	basedir := filepath.Join(app.Config.ThemeDir, app.Config.Theme, dir)
-	lst, err := ioutil.ReadDir(basedir)
+	lst, err := os.ReadDir(basedir)
 	if err != nil {
 		return err
 	}
@@ -22,20 +22,21 @@ func buildTemplate(app *application, renderer *renderer, tpl *template.Template,
 		app.Stats.Inc(counter)
 		txt, err := renderer.RenderType(app, item.Name(), dir, viewmodel)
 		if err != nil {
-			return errors.New(fmt.Sprintf("%v/%v : %v", dir, item.Name(), err.Error()))
+			return fmt.Errorf("%v/%v : %w", dir, item.Name(), err)
 		}
 		path, err2 := execTemplate(tpl, map[string]string{"Name": item.Name()})
 		if err2 != nil {
-			return errors.New(fmt.Sprintf("%v/%v : %v", dir, item.Name(), err2.Error()))
+			return fmt.Errorf("%v/%v : %w", dir, item.Name(), err2)
 		}
 		if err := writeFile(txt, filepath.Join(app.Config.OutputDir, path)); err != nil {
-			return errors.New(fmt.Sprintf("%v/%v : %v", dir, item.Name(), err.Error()))
+			return fmt.Errorf("%v/%v : %w", dir, item.Name(), err)
 		}
 	}
 	return nil
 }
 
-func buildList(app *application, renderer *renderer, lst, name string, arts []*article, dc func() map[interface{}]interface{}, vu func(*viewModel)) error {
+func buildList(app *application, renderer *renderer, lst, name string, arts []*article,
+	dc func() map[any]any, vu func(*viewModel)) error {
 	brek := false
 	for page := 1; !brek; page++ {
 		app.Stats.Inc(name)
@@ -53,17 +54,18 @@ func buildList(app *application, renderer *renderer, lst, name string, arts []*a
 		brek = vm.SetPage(page, step, arts, data, name)
 		html, err := renderer.RenderPage(app, lst, vm)
 		if err != nil {
-			return errors.New(fmt.Sprintf("%v: %v", path, err.Error()))
+			return fmt.Errorf("%v: %w", path, err)
 		}
 		if err := writeFile(html, filepath.Join(app.Config.OutputDir, path)); err != nil {
-			return errors.New(fmt.Sprintf("%v: %v", path, err.Error()))
+			return fmt.Errorf("%v: %w", path, err)
 		}
 
 		if page == 1 {
 			data["Page"] = 0
 			indexpath := app.Path(name, data)
-			if err := copyFile(filepath.Join(app.Config.OutputDir, path), filepath.Join(app.Config.OutputDir, indexpath)); err != nil {
-				return errors.New(fmt.Sprintf("%v: %v", path, err.Error()))
+			if err := copyFile(filepath.Join(app.Config.OutputDir, path),
+				filepath.Join(app.Config.OutputDir, indexpath)); err != nil {
+				return fmt.Errorf("%v: %w", path, err)
 			}
 		}
 	}
@@ -94,7 +96,10 @@ func build(app *application) error {
 	started := time.Now()
 	app.Log("build start")
 	var err error
-	app.CompileTemplates()
+	err = app.CompileTemplates()
+	if err != nil {
+		return err
+	}
 	err = app.LoadArticles("published")
 	if err != nil {
 		return err
@@ -114,8 +119,6 @@ func build(app *application) error {
 					exitApplication(err.Error(), 1)
 				case <-quit:
 					return
-				default:
-					/* nop */
 				}
 			}
 		}()
@@ -138,7 +141,7 @@ func build(app *application) error {
 
 	// index
 	if err := buildList(app, renderer, "list1", "Index", app.Articles,
-		func() map[interface{}]interface{} {
+		func() map[any]any {
 			return H("App", app)
 		},
 		func(vm *viewModel) {
@@ -150,7 +153,7 @@ func build(app *application) error {
 	//tag
 	for tag, arts := range app.Tags {
 		if err := buildList(app, renderer, "list2", "Tag", arts,
-			func() map[interface{}]interface{} {
+			func() map[any]any {
 				return H("App", app, "Tag", tag)
 			},
 			func(vm *viewModel) {
@@ -166,7 +169,7 @@ func build(app *application) error {
 		year := parseIntMust(syear)
 
 		if err := buildList(app, renderer, "list2", "Annual", arts,
-			func() map[interface{}]interface{} {
+			func() map[any]any {
 				return H("App", app, "Year", year)
 			},
 			func(vm *viewModel) {
@@ -183,7 +186,7 @@ func build(app *application) error {
 		month := parseIntMust(smonth[4:6])
 
 		if err := buildList(app, renderer, "list2", "Monthly", arts,
-			func() map[interface{}]interface{} {
+			func() map[any]any {
 				return H("App", app, "Year", year, "Month", month)
 			},
 			func(vm *viewModel) {
@@ -208,16 +211,18 @@ func build(app *application) error {
 	app.Log("%d feeds", app.Stats.Get("Feed"))
 
 	// extras
-	if err := copyExtras(app, renderer, app.Config.ExtraFiles, filepath.Join(app.Config.ContentDir, "extras")); err != nil {
+	if err := copyExtras(app, renderer, app.Config.ExtraFiles,
+		filepath.Join(app.Config.ContentDir, "extras")); err != nil {
 		return err
 	}
-	if err := copyExtras(app, renderer, app.Config.ThemeConfig.ExtraFiles, filepath.Join(app.Config.ThemeDir, app.Config.Theme, "extras")); err != nil {
+	if err := copyExtras(app, renderer, app.Config.ThemeConfig.ExtraFiles,
+		filepath.Join(app.Config.ThemeDir, app.Config.Theme, "extras")); err != nil {
 		return err
 	}
 	app.Log("%d extra files", app.Stats.Get("Extra"))
 
 	app.Log("-----------------------------")
-	app.Log("build: OK(%v)", time.Now().Sub(started))
+	app.Log("build: OK(%v)", time.Since(started))
 	app.Log("-----------------------------")
 	return nil
 }
@@ -230,7 +235,7 @@ func copyExtras(app *application, renderer *renderer, extras []extraFile, sdir s
 		app.Debug("copy extras start: %v", path)
 		matches, err := filepath.Glob(path)
 		if err != nil {
-			return errors.New(fmt.Sprintf("%v: %v", path, err.Error()))
+			return fmt.Errorf("%v: %w", path, err)
 		}
 		for _, m := range matches {
 			app.Stats.Inc("Extra")
@@ -244,19 +249,19 @@ func copyExtras(app *application, renderer *renderer, extras []extraFile, sdir s
 			if f.Template && isFile(m) {
 				txt, err := renderer.RenderPage(app, m, newViewModel(app, "", nil))
 				if err != nil {
-					return errors.New(fmt.Sprintf("%v: %v", m, err.Error()))
+					return fmt.Errorf("%v: %w", m, err)
 				}
 				if err := writeFile(txt, dst); err != nil {
-					return errors.New(fmt.Sprintf("%v: %v", m, err.Error()))
+					return fmt.Errorf("%v: %w", m, err)
 				}
 			} else {
 				if isDir(m) {
 					if err := copyTree(m, dst); err != nil {
-						return errors.New(fmt.Sprintf("%v: %v", m, err.Error()))
+						return fmt.Errorf("%v: %w", m, err)
 					}
 				} else {
 					if err := copyFile(m, dst); err != nil {
-						return errors.New(fmt.Sprintf("%v: %v", m, err.Error()))
+						return fmt.Errorf("%v: %w", m, err)
 					}
 				}
 			}

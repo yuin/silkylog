@@ -1,11 +1,9 @@
 package main
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
-	"github.com/russross/blackfriday"
-	"github.com/yuin/gluamapper"
-	"github.com/yuin/gopher-lua"
 	htemplate "html/template"
 	"os"
 	"os/exec"
@@ -16,6 +14,17 @@ import (
 	"sync"
 	"text/template"
 	"time"
+
+	chtml "github.com/alecthomas/chroma/v2/formatters/html"
+	"github.com/russross/blackfriday"
+	"github.com/yuin/gluamapper"
+	"github.com/yuin/goldmark"
+	highlighting "github.com/yuin/goldmark-highlighting/v2"
+	"github.com/yuin/goldmark/extension"
+	"github.com/yuin/goldmark/parser"
+	grenderer "github.com/yuin/goldmark/renderer"
+	"github.com/yuin/goldmark/renderer/html"
+	lua "github.com/yuin/gopher-lua"
 )
 
 type stats struct {
@@ -40,8 +49,6 @@ func (sts *stats) Get(name string) int {
 	defer sts.m.Unlock()
 	return sts.counter[name]
 }
-
-type logger func(app *application, format string, args ...interface{})
 
 var _app *application
 
@@ -102,7 +109,7 @@ func (app *application) Debug(format string, args ...interface{}) {
 }
 
 func (app *application) ConvertArticleText(art *article) error {
-	if len(art.BodyHtml) > 0 {
+	if len(art.BodyHTML) > 0 {
 		return nil
 	}
 	art.m.Lock()
@@ -113,7 +120,7 @@ func (app *application) ConvertArticleText(art *article) error {
 	if err != nil {
 		return err
 	}
-	art.BodyHtml = html
+	art.BodyHTML = html
 	return nil
 }
 
@@ -142,19 +149,51 @@ func (app *application) convertArticleText(L *lua.LState, markup, format string)
 
 	switch format {
 	case ".md":
-		lhtmlopts, _ := opts["htmlopts"]
-		lexts, _ := opts["exts"]
-		htmlopts, err1 := strListToOption("htmlopts", lhtmlopts, 0, strToBfHtmlOpts)
-		if err1 != nil {
-			return "", err1
+		switch opts["name"].(string) {
+		case "blackfriday":
+			lhtmlopts := opts["htmlopts"]
+			lexts := opts["exts"]
+			htmlopts, err := strListToOption("htmlopts", lhtmlopts, 0, strToBfHTMLOpts)
+			if err != nil {
+				return "", err
+			}
+			exts, err := strListToOption("exts", lexts, 0, strToBfExts)
+			if err != nil {
+				return "", err
+			}
+			rd := blackfriday.HtmlRenderer(htmlopts, "", "")
+			html := string(blackfriday.Markdown(([]byte)(markup), rd, exts))
+			return strings.Replace(html, "<pre><code", "<pre class=\"prettyprint\"><code", -1), nil
+		default:
+			lhtmlopts := opts["htmlopts"]
+			lmdopts := opts["mdopts"]
+			lexts := opts["exts"]
+
+			htmlopts, err := strListToFuncOption[grenderer.Option]("htmlopts",
+				lhtmlopts, []grenderer.Option{}, strToGoldmarkHTMLOpts)
+			if err != nil {
+				return "", err
+			}
+			mdopts, err := strListToFuncOption[parser.Option]("mdopts", lmdopts, []parser.Option{}, strToGoldmarkMDOpts)
+			if err != nil {
+				return "", err
+			}
+			exts, err := strListToFuncOption[goldmark.Extender]("mdopts", lexts, []goldmark.Extender{}, strToGoldmarkExts)
+			if err != nil {
+				return "", err
+			}
+			markdown := goldmark.New(
+				goldmark.WithParserOptions(mdopts...),
+				goldmark.WithRendererOptions(htmlopts...),
+				goldmark.WithExtensions(exts...),
+			)
+			var out bytes.Buffer
+			err = markdown.Convert([]byte(markup), &out)
+			if err != nil {
+				return "", err
+			}
+			return out.String(), nil
 		}
-		exts, err2 := strListToOption("exts", lexts, 0, strToBfExts)
-		if err2 != nil {
-			return "", err2
-		}
-		renderer := blackfriday.HtmlRenderer(htmlopts, "", "")
-		html := string(blackfriday.Markdown(([]byte)(markup), renderer, exts))
-		return strings.Replace(html, "<pre><code", "<pre class=\"prettyprint\"><code", -1), nil
 	}
 	return "", errors.New("no builtin processors found for '" + format + "'")
 }
@@ -195,20 +234,20 @@ func (app *application) Path(name string, data interface{}) string {
 	return path
 }
 
-func (app *application) relUrl(name string, data interface{}) string {
+func (app *application) relURL(name string, data interface{}) string {
 	url := strings.TrimSuffix(app.Path(name, data), "index.html")
-	if app.Config.TrimHtml {
+	if app.Config.TrimHTML {
 		return strings.TrimSuffix(url, ".html")
 	}
 	return urlEncode(url)
 }
 
 func (app *application) Url(name string, data interface{}) string {
-	return "/" + app.relUrl(name, data)
+	return "/" + app.relURL(name, data)
 }
 
-func (app *application) FullUrl(name string, data interface{}) string {
-	return app.Config.SiteUrl + app.relUrl(name, data)
+func (app *application) FullURL(name string, data interface{}) string {
+	return app.Config.SiteUrl + app.relURL(name, data)
 }
 
 func (app *application) CompileTemplates() (err error) {
@@ -278,11 +317,39 @@ func (app *application) openEditor(path string) error {
 	edcopy := make([]string, len(app.Config.Editor)+1)
 	copy(edcopy, app.Config.Editor)
 	edcopy[len(edcopy)-1] = path
-	cmd := exec.Command(edcopy[0], edcopy[1:len(edcopy)]...)
+	cmd := exec.Command(edcopy[0], edcopy[1:]...)
 	return cmd.Start()
 }
 
-var strToBfHtmlOpts = map[string]int{
+var strToGoldmarkHTMLOpts = map[string]grenderer.Option{
+	"unsafe": html.WithUnsafe(),
+}
+
+var strToGoldmarkMDOpts = map[string]parser.Option{
+	"autoHeadingID": parser.WithAutoHeadingID(),
+	"attribute":     parser.WithAttribute(),
+}
+
+var strToGoldmarkExts = map[string]goldmark.Extender{
+	"table":          extension.Table,
+	"strikethrough":  extension.Strikethrough,
+	"linkify":        extension.Linkify,
+	"taskList":       extension.TaskList,
+	"gfm":            extension.GFM,
+	"definitionList": extension.DefinitionList,
+	"footnote":       extension.Footnote,
+	"typographer":    extension.Typographer,
+	"cjk":            extension.CJK,
+	"highlighting": highlighting.NewHighlighting(
+		highlighting.WithStyle("monokai"),
+		highlighting.WithGuessLanguage(true),
+		highlighting.WithFormatOptions(
+			chtml.WithLineNumbers(true),
+		),
+	),
+}
+
+var strToBfHTMLOpts = map[string]int{
 	"HTML_SKIP_HTML":                 blackfriday.HTML_SKIP_HTML,
 	"HTML_SKIP_STYLE":                blackfriday.HTML_SKIP_STYLE,
 	"HTML_SKIP_IMAGES":               blackfriday.HTML_SKIP_IMAGES,

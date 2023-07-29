@@ -9,8 +9,6 @@
     <link href="{{ .App.Url "File" (H "Path" "statics/css/main.css") }}" rel="stylesheet">
     <link rel="alternate" type="application/rss+xml" href="{{ .App.Url "Feed" (H "Name" "rss20.xml") }}" />
    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/8.4/styles/default.min.css">
-   <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/8.4/highlight.min.js"></script>
-    <link rel="stylesheet" href="http://jmblog.github.com/color-themes-for-google-code-prettify/css/themes/github.css">
     <script>
       function get(id) {return document.getElementById(id)};
       function load(path, id) {var req = new XMLHttpRequest();req.open('GET', path, true);req.onerror = function() {};req.onload = function() {if (req.status >= 200 && req.status < 400) { get(id).innerHTML = req.responseText;} else {req.onerror();};};req.send();}

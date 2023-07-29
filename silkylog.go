@@ -1,9 +1,11 @@
 package main
 
 import (
-	"github.com/codegangsta/cli"
-	"github.com/yuin/gopher-lua"
+	"fmt"
 	"os"
+
+	"github.com/urfave/cli"
+	lua "github.com/yuin/gopher-lua"
 )
 
 func createRootLState(app *application) *lua.LState {
@@ -36,8 +38,7 @@ func main() {
 			},
 			Action: func(c *cli.Context) error {
 				createRootLState(app)
-				var err error
-				err = newsite(app, c.String("path"))
+				err := newsite(app, c.String("path"))
 				if err != nil {
 					return cli.NewExitError(err.Error(), 1)
 				}
@@ -74,8 +75,7 @@ func main() {
 			Usage: "clean all data",
 			Action: func(c *cli.Context) error {
 				createRootLState(app)
-				var err error
-				err = clean(app)
+				err := clean(app)
 				if err != nil {
 					return cli.NewExitError(err.Error(), 1)
 				}
@@ -97,8 +97,7 @@ func main() {
 				if port == 0 {
 					port = 7000
 				}
-				var err error
-				err = serve(app, port)
+				err := serve(app, port)
 				if err != nil {
 					return cli.NewExitError(err.Error(), 1)
 				}
@@ -137,8 +136,7 @@ func main() {
 			Usage: "create new article",
 			Action: func(c *cli.Context) error {
 				createRootLState(app)
-				var err error
-				err = newarticle(app)
+				err := newarticle(app)
 				if err != nil {
 					return cli.NewExitError(err.Error(), 1)
 				}
@@ -146,5 +144,9 @@ func main() {
 			},
 		},
 	}
-	cliapp.Run(os.Args)
+	err := cliapp.Run(os.Args)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err.Error())
+		os.Exit(1)
+	}
 }

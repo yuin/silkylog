@@ -2,8 +2,7 @@ package main
 
 import (
 	"errors"
-	"github.com/yuin/gopher-lua"
-	"io/ioutil"
+	"io"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -11,6 +10,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	lua "github.com/yuin/gopher-lua"
 )
 
 type article struct {
@@ -20,7 +21,7 @@ type article struct {
 	Title     string
 	Slug      string
 	BodyText  string
-	BodyHtml  string
+	BodyHTML  string
 	Status    string
 	Tags      []string
 	PostedAt  time.Time
@@ -62,7 +63,7 @@ func (am articleMap) Add(key string, art *article) {
 
 func (am articleMap) SortedMapKeys(reverse bool) []string {
 	keys := []string{}
-	for key, _ := range am {
+	for key := range am {
 		keys = append(keys, key)
 	}
 	if !reverse {
@@ -78,13 +79,15 @@ func loadArticle(app *application, path string) (*article, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer fp.Close()
+	defer func() {
+		_ = fp.Close()
+	}()
 	art := &article{}
 	art.FilePath = path
 	art.Format = filepath.Ext(path)
 	art.Tags = []string{}
 	buf := []string{}
-	btext, err := ioutil.ReadAll(fp)
+	btext, err := io.ReadAll(fp)
 	if err != nil {
 		return nil, err
 	}
@@ -119,7 +122,7 @@ func parseArticleHeader(app *application, art *article, line string) error {
 		return errors.New("invalid header: " + line)
 	}
 	name := names[1]
-	value := strings.TrimSpace(strings.Join(names[2:len(names)], ":"))
+	value := strings.TrimSpace(strings.Join(names[2:], ":"))
 	switch name {
 	case "title":
 		art.Title = value
@@ -172,7 +175,7 @@ func (art *article) ToLua(L *lua.LState) *lua.LTable {
 	tb.RawSetString("title", lua.LString(art.Title))
 	tb.RawSetString("slug", lua.LString(art.Slug))
 	tb.RawSetString("body_text", lua.LString(art.BodyText))
-	tb.RawSetString("body_html", lua.LString(art.BodyHtml))
+	tb.RawSetString("body_html", lua.LString(art.BodyHTML))
 	tb.RawSetString("status", lua.LString(art.Status))
 	tags := L.NewTable()
 	for _, tag := range art.Tags {

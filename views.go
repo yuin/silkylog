@@ -3,20 +3,20 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"github.com/yuin/gopher-lua"
 	"html"
 	"html/template"
-	"io/ioutil"
 	"math"
+	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
 	"sync"
+
+	lua "github.com/yuin/gopher-lua"
 )
 
 type renderer struct {
 	m        sync.Mutex
-	m2       sync.Mutex
 	tplcache map[string]*template.Template
 	layouts  map[string]string
 }
@@ -80,9 +80,8 @@ func (vm *viewModel) Lua(name string, args ...interface{}) template.HTML {
 		}
 		L.Call(len(args), 1)
 		return template.HTML(luaPop(L).String())
-	} else {
-		return template.HTML(fn.String())
 	}
+	return template.HTML(fn.String())
 }
 
 func (vm *viewModel) LValue(v interface{}) lua.LValue {
@@ -133,7 +132,7 @@ func (rd *renderer) loadTemplate(path string) error {
 	if _, ok := rd.tplcache[path]; ok {
 		return nil
 	}
-	bts, err := ioutil.ReadFile(path)
+	bts, err := os.ReadFile(path)
 	if err != nil {
 		return err
 	}
@@ -145,7 +144,7 @@ func (rd *renderer) loadTemplate(path string) error {
 	return nil
 }
 
-func (rd *renderer) Render(app *application, path string, data *viewModel) (string, error) {
+func (rd *renderer) Render(_ *application, path string, data *viewModel) (string, error) {
 	L := luaPool.Get()
 	defer luaPool.Put(L)
 	rd.m.Lock()
@@ -190,7 +189,7 @@ func (rd *renderer) RenderPage(app *application, name string, data *viewModel) (
 	layout := rd.layouts[path]
 	if !cok {
 		laypat := regexp.MustCompile(`{{/\*\s*layout:\s*([^\s]+)\s*\*/}}`)
-		bts, err := ioutil.ReadFile(path)
+		bts, err := os.ReadFile(path)
 		if err != nil {
 			return "", err
 		}
@@ -228,9 +227,8 @@ func (rd *renderer) RenderPage(app *application, name string, data *viewModel) (
 			return "", err
 		}
 		return w.String(), nil
-	} else {
-		return buf.String(), nil
 	}
+	return buf.String(), nil
 }
 
 func defaultPagenator(vm *viewModel, anchor string) template.HTML {
@@ -249,7 +247,9 @@ func defaultPagenator(vm *viewModel, anchor string) template.HTML {
 	if (page - 1) < 1 {
 		tpl = append(tpl, "<li class=\"previous-off\">&laquo;Previous</li>")
 	} else {
-		tpl = append(tpl, fmt.Sprintf("<li class=\"previous\"><a href=\"%s\" rel=\"prev\" class=\"%s\">&laquo;Previous</a></li>", pagelink(page-1), anchor))
+		tpl = append(tpl, fmt.Sprintf("<li class=\"previous\"><a href=\"%s\" "+
+			"rel=\"prev\" class=\"%s\">&laquo;Previous</a></li>",
+			pagelink(page-1), anchor))
 	}
 	if start != 1 {
 		tpl = append(tpl, fmt.Sprintf("<li><a href=\"%s\" class=\"%s\">1</a></li>", pagelink(1), anchor))
@@ -273,7 +273,8 @@ func defaultPagenator(vm *viewModel, anchor string) template.HTML {
 	if (page + 1) > maxpage {
 		tpl = append(tpl, "<li class=\"next-off\">Next&raquo;</li>")
 	} else {
-		tpl = append(tpl, fmt.Sprintf("<li class=\"next\"><a href=\"%s\" rel=\"next\" class=\"%s\">Next&raquo;</a></li>", pagelink(page+1), anchor))
+		tpl = append(tpl, fmt.Sprintf("<li class=\"next\"><a href=\"%s\" "+
+			"rel=\"next\" class=\"%s\">Next&raquo;</a></li>", pagelink(page+1), anchor))
 	}
 	tpl = append(tpl, "</ul></nav>")
 	return template.HTML(strings.Join(tpl, ""))

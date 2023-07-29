@@ -6,10 +6,8 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/yuin/gopher-lua"
 	htemplate "html/template"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
@@ -20,6 +18,8 @@ import (
 	"strings"
 	"text/template"
 	"time"
+
+	lua "github.com/yuin/gopher-lua"
 )
 
 func parseIntMust(s string) int {
@@ -122,7 +122,7 @@ func writeFile(data string, path string) error {
 	if err := ensureDirExists(path); err != nil {
 		return err
 	}
-	if err := ioutil.WriteFile(path, ([]byte)(data), 0755); err != nil {
+	if err := os.WriteFile(path, ([]byte)(data), 0755); err != nil {
 		return err
 	}
 	return nil
@@ -132,15 +132,15 @@ func copyFile(source, dest string) error {
 	if err := ensureDirExists(dest); err != nil {
 		return err
 	}
-	data, err := ioutil.ReadFile(source)
+	data, err := os.ReadFile(source)
 	if err != nil {
 		return err
 	}
-	return ioutil.WriteFile(dest, data, 0644)
+	return os.WriteFile(dest, data, 0644)
 }
 
 // source = src/dir, dest = dest/hoge
-// copy src/dir/{a,b,c} -> dst/hoge/{a,b,c}
+// copy src/dir/{a,b,c} -> dst/hoge/{a,b,c} .
 func copyTree(source string, dest string) error {
 	if !pathExists(dest) {
 		err := os.MkdirAll(dest, 0755)
@@ -155,7 +155,7 @@ func copyTree(source string, dest string) error {
 		return errors.New("copyTree: " + dest + " is not a directory")
 	}
 
-	lst, err := ioutil.ReadDir(source)
+	lst, err := os.ReadDir(source)
 	if err != nil {
 		return err
 	}
@@ -184,7 +184,7 @@ func download(url, path string) error {
 	if response.StatusCode != 200 {
 		return errors.New("failed to download '" + url + "'")
 	}
-	body, err1 := ioutil.ReadAll(response.Body)
+	body, err1 := io.ReadAll(response.Body)
 	if err1 != nil {
 		return err1
 	}
@@ -206,24 +206,32 @@ func unzip(zipfile, dest string) error {
 	if err != nil {
 		return err
 	}
-	defer r.Close()
+	defer func() {
+		_ = r.Close()
+	}()
 
 	for _, f := range r.File {
 		rc, err := f.Open()
 		if err != nil {
 			return err
 		}
-		defer rc.Close()
+		defer func() {
+			_ = rc.Close()
+		}()
 		path := filepath.Join(dest, f.Name)
 		if f.FileInfo().IsDir() {
-			os.MkdirAll(path, f.Mode())
+			if err := os.MkdirAll(path, f.Mode()); err != nil {
+				return err
+			}
 		} else {
 			f, err := os.OpenFile(
 				path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode())
 			if err != nil {
 				return err
 			}
-			defer f.Close()
+			defer func() {
+				_ = f.Close()
+			}()
 			_, err = io.Copy(f, rc)
 			if err != nil {
 				return err
@@ -318,6 +326,29 @@ func timeToLuaTable(L *lua.LState, t time.Time) *lua.LTable {
 	tb.RawSetH(lua.LString("tzname"), lua.LString(tzname))
 	tb.RawSetH(lua.LString("tzoffset"), lua.LNumber(tzoffset))
 	return tb
+}
+
+func strListToFuncOption[T any](name string, v any, init []T, options map[string]T) ([]T, error) {
+	if fmt.Sprint(v) == "<nil>" {
+		return init, nil
+	}
+	tbl, ok := v.([]interface{})
+	if !ok {
+		return init, errors.New(name + " must be a list of string")
+	}
+	var opts []T
+	for _, opt := range tbl {
+		s, sok := opt.(string)
+		if !sok {
+			return init, errors.New(name + " must be a list of string")
+		}
+		val, ok := options[s]
+		if !ok {
+			return init, errors.New("invalid option '" + s + "' for " + name)
+		}
+		opts = append(opts, val)
+	}
+	return opts, nil
 }
 
 func strListToOption(name string, v interface{}, init int, options map[string]int) (int, error) {
